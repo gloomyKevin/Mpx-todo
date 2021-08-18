@@ -1,0 +1,20 @@
+<template>
+  <view>api-proxy测试页面</view>
+</template>
+
+<script>
+  import { createPage } from '@mpxjs/core'
+  createPage({
+
+  })
+</script>
+
+<style lang="stylus">
+
+</style>
+
+<script type="application/json">
+  {
+    "usingComponents": {}
+  }
+</script>

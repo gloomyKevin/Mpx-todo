@@ -3,18 +3,24 @@
     <view class="header">
       <view class="h1">todos</view>
       <div class="todo-wrapper">
-        <input class="new-todo" type="text" focus placeholder="What needs to be done?" wx:model="{{inputVal}}"/>
+        <input
+          class="new-todo"
+          type="text"
+          focus
+          placeholder="What needs to be done?"
+          wx:model="{{inputVal}}"
+        />
         <button class="complete" bindtap="addTodo">添加</button>
       </div>
     </view>
 
     <view class="main" hidden="{{todos.length===0}}">
       <checkbox-group wx:if="{{__mpx_mode__ !== 'swan'}}" bindchange="toggleAll">
-        <checkbox class="toggle-all" id="toggle-all" checked="{{allChecked}}"/>
+        <checkbox class="toggle-all" id="toggle-all" checked="{{allChecked}}" />
         <label class="label" for="toggle-all"></label>
       </checkbox-group>
       <view wx:if="{{__mpx_mode__ === 'swan'}}" bindtap="toggleAll">
-        <checkbox class="toggle-all" id="toggle-all" checked="{{allChecked}}"/>
+        <checkbox class="toggle-all" id="toggle-all" checked="{{allChecked}}" />
         <label class="label" for="toggle-all"></label>
       </view>
       <view class="todo-list">
@@ -22,16 +28,32 @@
           <todo todo="{{item}}" index="{{index}}"></todo>
         </view>
       </view>
+
+      <!-- <view>连接数:{{ socketRes.OPEN }}</view> -->
+      <button class="proxy-test-btn" bindtap="navigateToUrl">api-proxy测试</button>
+      <button class="socket-test-btn" bindtap="connectSocket">connect-socket测试</button>
+      <button class="socket-test-btn" bindtap="closeSocket">connect-close测试</button>
+      <button class="socket-test-btn" bindtap="listenSocket">connect-listen事件测试</button>
+      <button class="socket-test-btn" bindtap="sendSocket">connect-send事件测试</button>
+      <button class="socket-test-btn" bindtap="multiConnectSocket">connect-socket-多连接-测试</button>
+      <!-- <button class="socket-test-btn" bindtap="getRequestTask">requestTask测试</button> -->
+      <!-- <button class="socket-test-btn" bindtap="requestAli">支付宝requestTask测试</button> -->
     </view>
 
     <view class="footer clearfix" hidden="{{todos.length===0}}">
       <view class="todo-count">
-        <view class="strong">{{remaining}}</view>items left
+        <view class="strong">{{ remaining }}</view
+        >items left
       </view>
 
       <view class="filters">
         <view wx:for="{{filters}}" wx:key="{{index}}" class="li">
-          <view bindtap="setVisibility(item)" data-item="{{item}}" class="{{visibility === item?'a selected':'a'}}">{{item}}</view>
+          <view
+            bindtap="setVisibility(item)"
+            data-item="{{item}}"
+            class="{{visibility === item?'a selected':'a'}}"
+            >{{ item }}</view
+          >
         </view>
       </view>
 
@@ -43,9 +65,11 @@
 </template>
 
 <script>
-  import { createComponent } from '@mpxjs/core'
+  import mpx, { createComponent } from '@mpxjs/core'
   import store from '../store/index'
-
+  import apiProxy from '@mpxjs/api-proxy'
+  // debugger
+  mpx.use(apiProxy)
   const filters = {
     all: todos => todos,
     active: todos => todos.filter(todo => !todo.done),
@@ -55,7 +79,9 @@
     data: {
       visibility: 'all',
       filters: Object.keys(filters),
-      inputVal: ''
+      inputVal: '',
+
+      socketRes: null
     },
     computed: {
       ...store.mapState(['todos']),
@@ -83,11 +109,121 @@
       toggleAll () {
         store.commit('toggleAll', { done: !this.allChecked })
       },
-      ...store.mapMutations([
-        'clearCompleted'
-      ]),
+      ...store.mapMutations(['clearCompleted']),
       setVisibility (filterName) {
         this.visibility = filterName
+      },
+      navigateToUrl () {
+        console.log('mpx=====', mpx)
+        // mpx.navigateTo({
+        //   url: '../pages/proxy_test'
+        // })
+        // debugger
+        mpx.showToast({
+          title: '测试'
+        })
+      },
+      connectSocket () {
+        // debugger
+        this.socketRes = wx.connectSocket({
+          url: 'wss://tcb-ws.tencentcloudapi.com',
+          header: {
+            'content-type': 'application/json'
+          },
+          success: res => {
+            console.log('连接结果===', JSON.stringify(res))
+          },
+          protocols: ['protocol1']
+        })
+        console.log('socketRes===', this.socketRes)
+        console.log(Object.prototype.toString(this.socketRes))
+        // console.log('SocketTask===', SocketTask)
+      },
+      closeSocket () {
+        const tmp = this.socketRes.close({
+          success: () => {
+            console.log('关闭成功=====')
+          }
+        })
+        console.log('socketRes2===', this.socketRes)
+      },
+
+      listenSocket () {
+        this.socketRes.onClose(res => {
+          console.log('外层监听close关闭===')
+        })
+      },
+
+      sendSocket () {
+        this.socketRes.send({
+          data: 'test',
+          success: () => {
+            console.log('发送成功=====')
+          }
+        })
+      },
+
+      multiConnectSocket () {
+        wx.connectSocket({
+          url: 'wss://tcb-ws.tencentcloudapi.com',
+          header: {
+            'content-type': 'application/json'
+          },
+          success: res => {
+            console.log('多连接1成功===', JSON.stringify(res))
+          },
+          protocols: ['protocol1']
+        })
+
+        wx.connectSocket({
+          url: 'wss://api-ws.home-connect.cn',
+          header: {
+            'content-type': 'application/json'
+          },
+          success: res => {
+            console.log('多连接2成功===', JSON.stringify(res))
+          },
+          protocols: ['protocol1']
+        })
+      },
+
+      getRequestTask () {
+        const requestTask = wx.request({
+          url: 'https://www.baidu.com', // 仅为示例，并非真实的接口地址
+          // data: {
+          //   x: '',
+          //   y: ''
+          // },
+          header: {
+            'content-type': 'application/json'
+          },
+          success (res) {
+            console.log('getRequestTask调用成功=======', res.data)
+          }
+        })
+        console.log('getRequestTask返回结果=======', requestTask)
+        // requestTask.abort() // 取消请求任务
+      },
+
+      requestAli () {
+        wx.request({
+          url: 'https://httpbin.org/post',
+          method: 'POST',
+          data: {
+            from: '支付宝',
+            production: 'AlipayJSAPI'
+          },
+          headers: {
+            'content-type': 'application/json' // 默认值
+          },
+          dataType: 'json',
+          success: function (res) {
+            console.log('requestAli发送成功===')
+          },
+          fail: function (res) {
+            console.log('requestAli发送失败===')
+          }
+        })
       }
     }
   })
@@ -98,8 +234,7 @@
     background: #fff;
     margin: 100px 0 40px 0;
     position: relative;
-    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2),
-    0 25px 50px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 25px 50px 0 rgba(0, 0, 0, 0.1);
   }
 
   .todoapp .h1 {
@@ -145,8 +280,8 @@
     background: rgba(0, 0, 0, 0.003);
     box-shadow: inset 0 -2px 1px rgba(0, 0, 0, 0.03);
     /* display: inline-block;
-    line-height: 50px;
-    text-align: center; */
+              line-height: 50px;
+              text-align: center; */
   }
 
   .main {
@@ -204,19 +339,16 @@
     left: 0;
     height: 50px;
     overflow: hidden;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2),
-    0 8px 0 -3px #f6f6f6,
-    0 9px 1px -3px rgba(0, 0, 0, 0.2),
-    0 16px 0 -6px #f6f6f6,
-    0 17px 2px -6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 8px 0 -3px #f6f6f6, 0 9px 1px -3px rgba(0, 0, 0, 0.2),
+      0 16px 0 -6px #f6f6f6, 0 17px 2px -6px rgba(0, 0, 0, 0.2);
   }
 
   .clearfix:after {
-    content: ".";
+    content: '.';
     display: block;
     height: 0;
     clear: both;
-    visibility: hidden
+    visibility: hidden;
   }
 
   .todo-count {
@@ -246,10 +378,10 @@
     border: 1px solid transparent;
     border-radius: 3px;
     position: relative;
-
   }
 
-  .filters .li .a:active, .filters .li .a.selected {
+  .filters .li .a:active,
+  .filters .li .a.selected {
     border-color: rgba(175, 47, 47, 0.2);
   }
 
@@ -283,8 +415,6 @@
   .info .a:hover {
     text-decoration: underline;
   }
-
-
 </style>
 
 <script type="application/json">
